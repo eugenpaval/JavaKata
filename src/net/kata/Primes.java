@@ -47,7 +47,7 @@ public class Primes
             _currentSieve = 1;
             _primesInCurrentSieve = new int[0];
             _nextPrimeInSieveIndex = 0;
-            _candidates = new Boolean[_elemsInSieve + 1];
+            _candidates = new Boolean[_elemsInSieve];
 
             NewSieve();
         }
@@ -97,7 +97,7 @@ public class Primes
 
         private void NewSieve()
         {
-            for (int i = 0; i <= _elemsInSieve; ++i)
+            for (int i = 0; i < _candidates.length; ++i)
                 _candidates[i] = true;
         }
 

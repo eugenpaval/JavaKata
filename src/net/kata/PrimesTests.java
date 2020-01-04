@@ -31,9 +31,15 @@ class PrimesTests
     }
 
     @Test
-    public void test_1000000_1()
+    public void test_4000000_1()
     {
-        test(1000000, 1, 15485867);
+        test(4000000, 1, 67867979);
+    }
+
+    @Test
+    public void test_50000000_1()
+    {
+        test(50000000, 1, 982451707);
     }
 
     private void test(int skip, int limit, int... expect)
