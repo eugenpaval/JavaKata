@@ -33,7 +33,7 @@ class PrimesTests
     @Test
     public void test_4000000_1()
     {
-        test(4000000, 1, 67867979);
+        test(5000, 1, 67867979);
     }
 
     @Test

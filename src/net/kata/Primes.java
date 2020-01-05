@@ -1,7 +1,11 @@
 package net.kata;
 
+import sun.security.util.BitArray;
+
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
+import java.util.PrimitiveIterator;
 import java.util.stream.IntStream;
 
 public class Primes
@@ -13,9 +17,8 @@ public class Primes
 
     public static IntStream stream()
     {
-        Iterator<Integer> iter = new Primes().getIterator();
-
-        return IntStream.iterate(iter.next(), p -> iter.next());
+        Iterator<Integer> primes = new Primes().getIterator();
+        return IntStream.iterate(primes.next(), p -> primes.next());
     }
 
     private Iterator<Integer> getIterator()
@@ -25,15 +28,15 @@ public class Primes
 
     class PrimesIterator implements Iterator<Integer>
     {
-        private int[] _primesInFirstSieve;
+        private PrimitiveIterator.OfInt _primesInFirstSieve;
         private int _index;
         private int _lastPrime;
         private int _sieves;
         private int _elemsInSieve;
-        private int[] _primesInCurrentSieve;
+        private PrimitiveIterator.OfInt _primesInCurrentSieve;
         private int _currentSieve;
-        private int _nextPrimeInSieveIndex;
-        private Boolean[] _candidates;
+        private BitArray _candidates;
+        private ArrayList<Integer> _firstSieve = new ArrayList<>();
 
         public PrimesIterator()
         {
@@ -41,13 +44,11 @@ public class Primes
 
             _elemsInSieve = (limit >= Integer.MAX_VALUE ? (int)limit / 2 : (int)limit) + 1;
             _sieves = Integer.MAX_VALUE / _elemsInSieve + (Integer.MAX_VALUE % _elemsInSieve > 0 ? 1 : 0);
-            _primesInFirstSieve = ErathosteneSieve(_elemsInSieve);
+            _primesInFirstSieve = ErathosteneSieve(_elemsInSieve).iterator();
             _index = 0;
 
             _currentSieve = 1;
-            _primesInCurrentSieve = new int[0];
-            _nextPrimeInSieveIndex = 0;
-            _candidates = new Boolean[_elemsInSieve];
+            _candidates = new BitArray(_elemsInSieve);
 
             NewSieve();
         }
@@ -61,34 +62,37 @@ public class Primes
         @Override
         public Integer next()
         {
-            if (_index < _primesInFirstSieve.length)
-                _lastPrime = _primesInFirstSieve[_index++];
+            if (_primesInFirstSieve.hasNext())
+            {
+                _lastPrime = _primesInFirstSieve.next();
+                _firstSieve.add(_lastPrime);
+                ++_index;
+            }
             else
             {
-                if (_nextPrimeInSieveIndex >= _primesInCurrentSieve.length)
+                if (_primesInCurrentSieve == null || !_primesInCurrentSieve.hasNext())
                 {
+                    NewSieve();
+
                     int start = _currentSieve * _elemsInSieve;
                     int stop = start + _elemsInSieve > Integer.MAX_VALUE ? Integer.MAX_VALUE : start + _elemsInSieve;
 
-                    for (int i = 0; i < _primesInFirstSieve.length; ++i)
+                    for (int i = 0; i < _firstSieve.size(); ++i)
                     {
-                        int p = _primesInFirstSieve[i];
+                        int p = _firstSieve.get(i);
                         long from = start / p * p;
                         if (from < start)
                             from += p;
 
                         for (long j = from; j < stop; j += p)
-                            _candidates[(int)(j - start)] = false;
+                            _candidates.set((int)(j - start), false);
                     }
 
-                    _primesInCurrentSieve =  IntStream.range(0, _candidates.length).mapToObj(i -> new Tuple(i, _candidates[i])).filter(c -> c.getValue()).mapToInt(t -> t.getIndex() + start).toArray();
-
-                    _nextPrimeInSieveIndex = 0;
+                    _primesInCurrentSieve = IntStream.range(start, stop-1).filter(n -> _candidates.get(n-start)).iterator();
                     ++_currentSieve;
-                    NewSieve();
                 }
 
-                _lastPrime = _primesInCurrentSieve[_nextPrimeInSieveIndex++];
+                _lastPrime = _primesInCurrentSieve.next();
                 ++_index;
             }
 
@@ -97,11 +101,11 @@ public class Primes
 
         private void NewSieve()
         {
-            for (int i = 0; i < _candidates.length; ++i)
-                _candidates[i] = true;
+            for (int i = 0; i < _candidates.length(); ++i)
+                _candidates.set(i, true);
         }
 
-        private int[] ErathosteneSieve(int upTo)
+        private IntStream ErathosteneSieve(int upTo)
         {
             BitSet primes = new BitSet(upTo + 1);
             for (int i = 0; i <= upTo; ++i)
@@ -112,7 +116,7 @@ public class Primes
                     for (int i = p * 2; i <= upTo; i += p)
                         primes.set(i, false);
 
-            return primes.stream().skip(2).toArray();
+            return primes.stream().skip(2);
         }
     }
 
